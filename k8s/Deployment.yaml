@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cicd-practice
+  labels:
+    app: cicd-practice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cicd-practice
+  template:
+    metadata:
+      labels:
+        app: cicd-practice
+    spec:
+      containers:
+      - name: cicd-practice
+        image: cicd-practice:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: '64Mi'
+            cpu: '100m'
+          limits:
+            memory: '128Mi'
+            cpu: '250m'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicd-practice-svc
+spec:
+  selector:
+    app: cicd-practice
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: NodePort        # ← same indent level as selector and ports
+
