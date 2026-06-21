@@ -20,7 +20,7 @@ pipeline {
             }
         }
         stage('Test') {
-    s       steps {
+            steps {
                 sh 'docker rm -f smoke-test || true'
                 sh "docker run -d --name smoke-test ${APP_NAME}:latest"
                 sh 'sleep 3'
@@ -28,7 +28,8 @@ pipeline {
             }
             post {
                 always {
-                sh 'docker rm -f smoke-test || true'
+                    sh 'docker rm -f smoke-test || true'
+                }
             }
         }
         stage('Load Image to Minikube') {
