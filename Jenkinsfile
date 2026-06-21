@@ -14,38 +14,41 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo "Building ${APP_NAME}:${IMAGE_TAG}"
-                sh 'docker build -t ${APP_NAME}:${IMAGE_TAG} .'
-                sh 'docker tag ${APP_NAME}:${IMAGE_TAG} ${APP_NAME}:latest'
+                sh "docker build -t ${APP_NAME}:${IMAGE_TAG} ."
+                sh "docker tag ${APP_NAME}:${IMAGE_TAG} ${APP_NAME}:latest"
                 echo 'Build complete'
             }
         }
         stage('Test') {
             steps {
-                echo 'Running smoke test...'
-                sh 'docker run -d -p 9090:8080 --name smoke-test ${APP_NAME}:latest'
+                sh 'docker rm -f smoke-test || true'
+                sh "docker run -d -p 9090:8080 --name smoke-test ${APP_NAME}:latest"
                 sh 'sleep 3'
-                sh 'curl -f http://localhost:9090 || exit 1'
-                sh 'docker stop smoke-test && docker rm smoke-test'
-                echo 'Smoke test passed'
+                sh 'curl -f http://localhost:9090/ || (docker logs smoke-test && exit 1)'
+            }
+            post {
+                always {
+                    sh 'docker rm -f smoke-test || true'
+                }
             }
         }
         stage('Load Image to Minikube') {
             steps {
                 echo 'Loading image into minikube registry...'
-                sh 'minikube image load ${APP_NAME}:latest'
+                sh "minikube image load ${APP_NAME}:latest"
             }
         }
         stage('Deploy to Kubernetes') {
             steps {
                 echo 'Deploying to Kubernetes...'
-                sh 'kubectl apply -f k8s/deployment.yaml'
-                sh 'kubectl rollout status deployment/${APP_NAME} --timeout=120s'
+                sh "kubectl apply -f k8s/deployment.yaml"
+                sh "kubectl rollout status deployment/${APP_NAME} --timeout=120s"
             }
         }
         stage('Verify') {
             steps {
                 echo 'Verifying deployment...'
-                sh 'kubectl get pods -l app=${APP_NAME}'
+                sh "kubectl get pods -l app=${APP_NAME}"
                 sh 'kubectl get services'
             }
         }
@@ -53,11 +56,11 @@ pipeline {
     post {
         success {
             echo 'DEPLOYMENT SUCCESSFUL'
-            sh 'kubectl get pods -l app=${APP_NAME}'
+            sh "kubectl get pods -l app=${APP_NAME}"
         }
         failure {
             echo 'DEPLOYMENT FAILED - rolling back'
-            sh 'kubectl rollout undo deployment/${APP_NAME} || true'
+            sh "kubectl rollout undo deployment/${APP_NAME} || true"
         }
         always {
             echo "Build ${BUILD_NUMBER} completed"
