@@ -34,8 +34,8 @@ pipeline {
         }
         stage('Load Image to Minikube') {
             steps {
-                echo 'Loading image into minikube registry...'
-                sh "minikube image load ${APP_NAME}:latest"
+                 echo 'Loading image into minikube registry...'
+                 sh "docker save ${APP_NAME}:latest | docker exec -i minikube docker load"
             }
         }
         stage('Deploy to Kubernetes') {
