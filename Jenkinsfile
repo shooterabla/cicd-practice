@@ -20,16 +20,15 @@ pipeline {
             }
         }
         stage('Test') {
-            steps {
+    s       steps {
                 sh 'docker rm -f smoke-test || true'
-                sh "docker run -d -p 9090:8080 --name smoke-test ${APP_NAME}:latest"
+                sh "docker run -d --name smoke-test ${APP_NAME}:latest"
                 sh 'sleep 3'
-                sh 'curl -f http://localhost:9090/ || (docker logs smoke-test && exit 1)'
+                sh 'CONTAINER_IP=$(docker inspect -f \'{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}\' smoke-test) && curl -f http://$CONTAINER_IP:8080/ || (docker logs smoke-test && exit 1)'
             }
             post {
                 always {
-                    sh 'docker rm -f smoke-test || true'
-                }
+                sh 'docker rm -f smoke-test || true'
             }
         }
         stage('Load Image to Minikube') {
